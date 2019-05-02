@@ -4,6 +4,7 @@ import time
 import cv2, dlib
 import numpy as np
 import tensorflow as tf
+import itracker_adv
 from skimage import transform
 from imutils import face_utils
 import matplotlib.pyplot as plt
@@ -16,8 +17,6 @@ IMG_SIZE = (34, 26)
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
-
-model = load_model('./model/2018_12_17_22_58_35.h5')
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
 PATH_TO_CKPT = './model/frozen_inference_graph.pb'
@@ -33,7 +32,6 @@ LEFT_EYE = None
 RIGHT_EYE = None
 FACE_MASK = None
 FACE = None
-
 
 img_size = (64, 64)
 mask_size = (25, 25)
@@ -134,14 +132,14 @@ def crop_eye(img, eye_points):
 
 	return eye_img, eye_rect
 
-# def get_coordinates(sess, val_ops, val_data):
+def get_coordinates(sess, val_ops, val_data):
 
-# 	eye_left, eye_right, face, face_mask, pred = val_ops
+	eye_left, eye_right, face, face_mask, pred = val_ops
 
-# 	LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK = val_data
+	LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK = val_data
 
-# 	y_pred = sess.run(pred, feed_dict={eye_left: LEFT_EYE, eye_right: RIGHT_EYE, face: FACE, face_mask: FACE_MASK})
-# 	return y_pred
+	y_pred = sess.run(pred, feed_dict={eye_left: LEFT_EYE, eye_right: RIGHT_EYE, face: FACE, face_mask: FACE_MASK})
+	return y_pred
 
 
 def main():
@@ -155,9 +153,13 @@ def main():
 	state = ''
 	tDetector = TensoflowFaceDector(PATH_TO_CKPT)
  
-	# val_ops = None
-	# sess = tf.Session()
-	# val_ops = itracker_adv.load_model(sess, PATH_TO_META_GRAPH)
+	model = None
+	val_ops = None
+	sess = tf.Session()
+	val_ops = itracker_adv.load_model(sess, PATH_TO_META_GRAPH)
+
+	if model == None:	
+		model = load_model('./model/2018_12_17_22_58_35.h5')
 	
 	while True:
 
@@ -197,6 +199,7 @@ def main():
 			FACE = transform.resize(FACE, output_shape=img_size)
 			FACE_MASK = transform.resize(input_image, output_shape=mask_size)
 			im_face_mask.set_data(FACE_MASK)
+
 			gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 			shape = predictor(gray, face_rect)
 			shape = face_utils.shape_to_np(shape)
@@ -216,10 +219,17 @@ def main():
 			LEFT_EYE = LEFT_EYE.reshape(1, *img_size, 3)
 			RIGHT_EYE = RIGHT_EYE.reshape(1, *img_size, 3)
 			FACE = FACE.reshape(1, *img_size, 3)
-			FACE_MASK = FACE_MASK.reshape(1, 625, 3)
+			FACE_MASK = FACE_MASK[:, :, :1]
+			FACE_MASK = FACE_MASK.reshape(1, 625)
 
-			# val_data = [LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK]
-			# print(get_coordinates(sess, val_ops, val_data))
+			
+			val_data = [LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK]
+			coord = get_coordinates(sess, val_ops, val_data)
+			coord *= 255.
+			x, y = coord[0][0], coord[0][1]
+			x += frame.shape[0]/2
+			y += frame.shape[1]/2
+			print(x,y)
 
 			eye_img_l = cv2.resize(eye_img_l, dsize=IMG_SIZE)
 			eye_img_r = cv2.resize(eye_img_r, dsize=IMG_SIZE)
