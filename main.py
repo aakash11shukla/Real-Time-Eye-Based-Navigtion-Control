@@ -4,7 +4,6 @@ import time
 import cv2, dlib
 import numpy as np
 import tensorflow as tf
-import itracker_adv
 from skimage import transform
 from imutils import face_utils
 import matplotlib.pyplot as plt
@@ -135,14 +134,14 @@ def crop_eye(img, eye_points):
 
 	return eye_img, eye_rect
 
-def get_coordinates(sess, val_ops, val_data):
+# def get_coordinates(sess, val_ops, val_data):
 
-	eye_left, eye_right, face, face_mask, pred = val_ops
+# 	eye_left, eye_right, face, face_mask, pred = val_ops
 
-	LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK = val_data
+# 	LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK = val_data
 
-	y_pred = sess.run(pred, feed_dict={eye_left: LEFT_EYE, eye_right: RIGHT_EYE, face: FACE, face_mask: FACE_MASK})
-	return y_pred
+# 	y_pred = sess.run(pred, feed_dict={eye_left: LEFT_EYE, eye_right: RIGHT_EYE, face: FACE, face_mask: FACE_MASK})
+# 	return y_pred
 
 
 def main():
@@ -156,9 +155,9 @@ def main():
 	state = ''
 	tDetector = TensoflowFaceDector(PATH_TO_CKPT)
  
-	val_ops = None
-	sess = tf.Session()
-	val_ops = itracker_adv.load_model(sess, PATH_TO_META_GRAPH)
+	# val_ops = None
+	# sess = tf.Session()
+	# val_ops = itracker_adv.load_model(sess, PATH_TO_META_GRAPH)
 	
 	while True:
 
@@ -198,7 +197,6 @@ def main():
 			FACE = transform.resize(FACE, output_shape=img_size)
 			FACE_MASK = transform.resize(input_image, output_shape=mask_size)
 			im_face_mask.set_data(FACE_MASK)
-
 			gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 			shape = predictor(gray, face_rect)
 			shape = face_utils.shape_to_np(shape)
@@ -212,15 +210,15 @@ def main():
 			im_l_eye.set_data(LEFT_EYE)
 			im_r_eye.set_data(RIGHT_EYE)
 
-			plt.pause(0.00001)
+			plt.pause(0.0001)
 			plt.show()
 
 			LEFT_EYE = LEFT_EYE.reshape(1, *img_size, 3)
 			RIGHT_EYE = RIGHT_EYE.reshape(1, *img_size, 3)
 			FACE = FACE.reshape(1, *img_size, 3)
-			#FACE_MASK = FACE_MASK.reshape(1, 625)
+			FACE_MASK = FACE_MASK.reshape(1, 625, 3)
 
-			val_data = [LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK]
+			# val_data = [LEFT_EYE, RIGHT_EYE, FACE, FACE_MASK]
 			# print(get_coordinates(sess, val_ops, val_data))
 
 			eye_img_l = cv2.resize(eye_img_l, dsize=IMG_SIZE)
@@ -253,17 +251,17 @@ def main():
 			# if the eyes are open reset the counter for close eyes
 			
 			if pred > 0.3 :
-					state = 'open'
-					close_counter = 0
+				state = 'open'
+				close_counter = 0
 			else:
-					state = 'close'
-					close_counter += 1
+				state = 'close'
+				close_counter += 1
 			
 			# if the eyes are open and previousle were closed
 			# for sufficient number of frames then increcement 
 			# the total blinks
 			if state == 'open' and mem_counter > 1:
-					blinks += 1
+				blinks += 1
 			# keep the counter for the next loop 
 			mem_counter = close_counter 
 
@@ -274,8 +272,8 @@ def main():
 			cv2.putText(frame, "State: {}".format(state), (300, 30),
 					cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
-			# show the frame
-			cv2.imshow('Blinks Counter', frame)
+		# show the frame
+		cv2.imshow('Blinks Counter', frame)
 
 		if cv2.waitKey(1) == ord('q'):
 			break
@@ -284,4 +282,4 @@ def main():
 	del(camera)
 
 if __name__ == "__main__":
-		main()
+	main()
