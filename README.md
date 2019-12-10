@@ -16,3 +16,6 @@ tracking for everyone,”
 2016
 
 Contact authors for dataset
+
+Run itracker_adv.py for running the system
+Use itracker_adv_training_script.py --train -i INPUT to train
